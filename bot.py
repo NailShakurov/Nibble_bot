@@ -114,6 +114,20 @@ async def add_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def location_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
     location_name = update.message.text.strip()
     
+    # Создаем кнопки для главного меню
+    buttons = [
+        [
+            InlineKeyboardButton("🎣 Прогноз клёва", callback_data="show_forecast"),
+            InlineKeyboardButton("📍 Мои локации", callback_data="show_locations")
+        ],
+        [
+            InlineKeyboardButton("➕ Добавить локацию", callback_data="add_location"),
+            InlineKeyboardButton("❓ Помощь", callback_data="help")
+        ],
+        [InlineKeyboardButton("🔄 Перезапуск", callback_data="restart")]
+    ]
+    reply_markup = InlineKeyboardMarkup(buttons)
+    
     # Проверяем существование локации через API погоды
     try:
         weather_data = get_weather_data(location_name)
@@ -137,7 +151,11 @@ async def location_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 break
         
         if location_exists:
-            await update.message.reply_text(f"Локация {location_info['name']} уже добавлена в твой список!")
+            await update.message.reply_text(
+                f"Локация {location_info['name']} уже добавлена в твой список!\n\n"
+                "Выберите действие из меню ниже:",
+                reply_markup=reply_markup
+            )
         else:
             user["locations"].append(location_info)
             save_user_data(user_data)
@@ -145,14 +163,17 @@ async def location_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"✅ Локация успешно добавлена!\n\n"
                 f"📍 *{location_info['name']}, {location_info['country']}*\n"
                 f"Координаты: {location_info['lat']}, {location_info['lon']}\n\n"
-                f"Теперь ты можешь получить прогноз клёва для этой локации.",
-                parse_mode='Markdown'
+                "Выберите действие из меню ниже:",
+                parse_mode='Markdown',
+                reply_markup=reply_markup
             )
         
     except Exception as e:
         logger.error(f"Error adding location: {e}")
         await update.message.reply_text(
-            "❌ Не удалось найти такой населенный пункт. Пожалуйста, проверь название и попробуй снова."
+            "❌ Не удалось найти такой населенный пункт. Пожалуйста, проверь название и попробуй снова.\n\n"
+            "Выберите действие из меню ниже:",
+            reply_markup=reply_markup
         )
     
     return CHOOSING_ACTION
