@@ -1,7 +1,4 @@
 .env
-venv/
-venv_py311/
+venv*/
 __pycache__/
 *.pyc
-user_data.json
-.DS_Store
