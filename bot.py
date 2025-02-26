@@ -293,7 +293,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = load_user_data()
     user = get_user_data(query.from_user.id, user_data)
 
-    if data == "restart":
+    # Функция для возврата к главному меню
+    async def show_main_menu(message_text):
         buttons = [
             [
                 InlineKeyboardButton("🎣 Прогноз клёва", callback_data="show_forecast"),
@@ -305,15 +306,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ],
             [InlineKeyboardButton("🔄 Перезапуск", callback_data="restart")]
         ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        
         await query.edit_message_text(
-            f"Привет, {query.from_user.first_name}! 👋\n\n"
-            "Я бот-предсказатель клёва рыбы. Я анализирую погодные условия и подскажу, когда лучше всего отправиться на рыбалку.\n\n"
-            "Выберите действие из меню ниже:",
-            reply_markup=reply_markup
+            text=message_text,
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
         return CHOOSING_ACTION
+
+    if data == "restart":
+        return await show_main_menu(
+            f"Привет, {query.from_user.first_name}! 👋\n\n"
+            "Я бот-предсказатель клёва рыбы. Я анализирую погодные условия и подскажу, когда лучше всего отправиться на рыбалку.\n\n"
+            "Выберите действие из меню ниже:"
+        )
     
     elif data == "show_forecast":
         return await forecast_command(update, context)
@@ -373,13 +377,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Давление: {weather_forecast['current']['pressure']} гПа\n"
             f"Влажность: {weather_forecast['current']['humidity']}%\n"
             f"Ветер: {weather_forecast['current']['wind_speed']} м/с, {get_wind_direction(weather_forecast['current']['wind_deg'])}\n"
-            f"Облачность: {weather_forecast['current']['clouds']}%\n"
+            f"Облачность: {weather_forecast['current']['clouds']}%\n\n"
+            "Выберите действие из меню ниже:"
         )
         
-        # Сначала отправляем информацию о локации
-        await query.message.reply_text(location_text, parse_mode='Markdown')
-        # Затем возвращаемся к главному меню
-        return await return_to_main_menu("Выберите следующее действие:")
+        return await show_main_menu(location_text)
     
     elif data.startswith("forecast_"):
         # Получение прогноза клёва для локации
@@ -443,10 +445,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             forecast_text += "• Неблагоприятные условия для клёва, рыба малоактивна.\n"
             forecast_text += "• Если всё же решите рыбачить, стоит сосредоточиться на глубоких местах.\n"
         
-        # Сначала отправляем прогноз
-        await query.message.reply_text(forecast_text, parse_mode='Markdown')
-        # Затем возвращаемся к главному меню
-        return await return_to_main_menu("Выберите следующее действие:")
+        forecast_text += "\n\nВыберите действие из меню ниже:"
+        
+        return await show_main_menu(forecast_text)
     
     elif data == "delete_location":
         # Отображаем локации для удаления
@@ -473,12 +474,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if 0 <= location_index < len(user["locations"]):
             removed_location = user["locations"].pop(location_index)
             save_user_data(user_data)
-            return await return_to_main_menu(f"Локация {removed_location['name']} удалена.\n\nВыберите действие:")
+            return await show_main_menu(f"Локация {removed_location['name']} удалена.\n\nВыберите действие:")
         else:
-            return await return_to_main_menu("Ошибка: локация не найдена.\n\nВыберите действие:")
+            return await show_main_menu("Ошибка: локация не найдена.\n\nВыберите действие:")
     
     elif data == "cancel_delete":
-        return await return_to_main_menu("Удаление отменено.\n\nВыберите действие:")
+        return await show_main_menu("Удаление отменено.\n\nВыберите действие:")
     
     return CHOOSING_ACTION
 
