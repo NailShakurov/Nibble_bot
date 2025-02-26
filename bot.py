@@ -309,18 +309,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         buttons.append([InlineKeyboardButton("Отмена", callback_data="cancel_delete")])
         
-        await query.message.reply_text(
+        await query.edit_message_text(
             "Выбери локацию для удаления:",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
     
     elif data.startswith("remove_"):
-        # Удаление локации
         location_index = int(data.split("_")[1])
-        removed_location = user["locations"].pop(location_index)
-        save_user_data(user_data)
+        # Удаление локации
+        if 0<=location_index < len (user["locations"]):
+            #int(data.split("_")[1])
+            removed_location = user["locations"].pop(location_index)
+            user_data[str(query.from_user.id)] = user
+            save_user_data(user_data)
         
-        await query.message.reply_text(f"Локация {removed_location['name']} удалена.")
+            await query.message_message_text(f"Локация {removed_location['name']} удалена.")
+        else:
+            await query.message_message_text("Ошибка: локация не найдена.")
     
     elif data == "cancel_delete":
         await query.message.reply_text("Удаление отменено.")
