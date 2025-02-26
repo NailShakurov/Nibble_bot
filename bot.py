@@ -201,134 +201,6 @@ async def forecast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return SELECTING_LOCATION
 
 # Обработчик нажатий на кнопки
-# async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     query = update.callback_query
-#     await query.answer()
-    
-#     data = query.data
-#     user_data = load_user_data()
-#     user = get_user_data(query.from_user.id, user_data)
-    
-#     if data.startswith("location_"):
-#         # Получение информации о локации
-#         location_index = int(data.split("_")[1])
-#         location = user["locations"][location_index]
-        
-#         # Получаем прогноз погоды для этой локации
-#         weather_forecast = get_weather_forecast(location["lat"], location["lon"])
-        
-#         location_text = (
-#             f"📍 *{location['name']}, {location['country']}*\n\n"
-#             f"🌤 *Текущая погода:*\n"
-#             f"Температура: {weather_forecast['current']['temp']}°C\n"
-#             f"Ощущается как: {weather_forecast['current']['feels_like']}°C\n"
-#             f"Давление: {weather_forecast['current']['pressure']} гПа\n"
-#             f"Влажность: {weather_forecast['current']['humidity']}%\n"
-#             f"Ветер: {weather_forecast['current']['wind_speed']} м/с, {get_wind_direction(weather_forecast['current']['wind_deg'])}\n"
-#             f"Облачность: {weather_forecast['current']['clouds']}%\n"
-#         )
-        
-#         await query.message.reply_text(location_text, parse_mode='Markdown')
-    
-#     elif data.startswith("forecast_"):
-#         # Получение прогноза клёва для локации
-#         location_index = int(data.split("_")[1])
-#         location = user["locations"][location_index]
-        
-#         await query.message.reply_text(f"🔍 Анализирую погодные условия для {location['name']}...")
-        
-#         # Получаем прогноз погоды
-#         weather_forecast = get_weather_forecast(location["lat"], location["lon"])
-        
-#         # Анализируем прогноз клёва на 3 дня
-#         forecast_text = f"🎣 *Прогноз клёва для {location['name']}*\n\n"
-        
-#         # Текущая фаза луны
-#         moon_phase = get_moon_phase()
-#         forecast_text += f"🌙 Фаза луны: {moon_phase['name']}\n\n"
-        
-#         # Прогноз на сегодня и следующие 2 дня
-#         for i in range(3):
-#             date = (datetime.now() + timedelta(days=i)).strftime("%d.%m.%Y")
-#             daily_forecast = weather_forecast['daily'][i]
-            
-#             # Рассчитываем вероятность клёва
-#             bite_probability, factors = calculate_bite_probability(daily_forecast, moon_phase)
-#             bite_rating = get_bite_rating(bite_probability)
-            
-#             forecast_text += f"📅 *{date}*\n"
-#             forecast_text += f"🌡 Температура: {daily_forecast['temp']['day']}°C\n"
-#             forecast_text += f"💨 Ветер: {daily_forecast['wind_speed']} м/с, {get_wind_direction(daily_forecast['wind_deg'])}\n"
-#             forecast_text += f"☁️ Облачность: {daily_forecast['clouds']}%\n"
-#             forecast_text += f"💧 Влажность: {daily_forecast['humidity']}%\n"
-#             forecast_text += f"📊 Давление: {daily_forecast['pressure']} гПа\n"
-#             forecast_text += f"🌧 Осадки: {daily_forecast.get('rain', 0)} мм\n"
-#             forecast_text += f"🎣 Клёв: {bite_rating}\n"
-            
-#             # Добавляем ключевые факторы
-#             forecast_text += "👍 Благоприятные факторы:\n"
-#             for factor in factors['positive']:
-#                 forecast_text += f"  • {factor}\n"
-            
-#             forecast_text += "👎 Неблагоприятные факторы:\n"
-#             for factor in factors['negative']:
-#                 forecast_text += f"  • {factor}\n"
-            
-#             forecast_text += "\n"
-        
-#         # Добавляем рекомендации
-#         forecast_text += "*Рекомендации по рыбалке:*\n"
-        
-#         if bite_probability > 75:
-#             forecast_text += "• Отличное время для рыбалки! Не упустите возможность.\n"
-#             forecast_text += "• Хищная рыба будет активна, стоит использовать активные приманки.\n"
-#         elif bite_probability > 50:
-#             forecast_text += "• Хороший день для рыбалки, особенно в утренние и вечерние часы.\n"
-#             forecast_text += "• Стоит комбинировать разные техники ловли.\n"
-#         elif bite_probability > 25:
-#             forecast_text += "• Умеренный клёв, лучше рыбачить в самое тихое время дня.\n"
-#             forecast_text += "• Рекомендуется использовать пассивные приманки и насадки.\n"
-#         else:
-#             forecast_text += "• Неблагоприятные условия для клёва, рыба малоактивна.\n"
-#             forecast_text += "• Если всё же решите рыбачить, стоит сосредоточиться на глубоких местах.\n"
-        
-#         await query.message.reply_text(forecast_text, parse_mode='Markdown')
-    
-#     elif data == "delete_location":
-#         # Отображаем локации для удаления
-#         if not user["locations"]:
-#             await query.message.reply_text("У тебя нет добавленных локаций.")
-#             return CHOOSING_ACTION
-        
-#         buttons = []
-#         for i, loc in enumerate(user["locations"]):
-#             buttons.append([InlineKeyboardButton(
-#                 f"Удалить: {loc['name']}", 
-#                 callback_data=f"remove_{i}"
-#             )])
-        
-#         buttons.append([InlineKeyboardButton("Отмена", callback_data="cancel_delete")])
-        
-#         await query.message.reply_text(
-#             "Выбери локацию для удаления:",
-#             reply_markup=InlineKeyboardMarkup(buttons)
-#         )
-    
-#     elif data.startswith("remove_"):
-#         # Удаление локации
-#         location_index = int(data.split("_")[1])
-#         removed_location = user["locations"].pop(location_index)
-#         save_user_data(user_data)
-        
-#         await query.message.reply_text(f"Локация {removed_location['name']} удалена.")
-    
-#     elif data == "cancel_delete":
-#         await query.message.reply_text("Удаление отменено.")
-    
-#     return CHOOSING_ACTION
-# Вот исправленная часть кода для удаления локаций
-# Замените функцию button_callback этой версией
-
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -445,21 +317,149 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("remove_"):
         # Удаление локации
         location_index = int(data.split("_")[1])
+        removed_location = user["locations"].pop(location_index)
+        save_user_data(user_data)
         
-        # Проверка на валидный индекс
-        if 0 <= location_index < len(user["locations"]):
-            removed_location = user["locations"].pop(location_index)
-            save_user_data(user_data)  # Сохраняем изменения
-            
-            await query.message.reply_text(f"Локация {removed_location['name']} удалена.")
-        else:
-            await query.message.reply_text("Ошибка: локация не найдена.")
+        await query.message.reply_text(f"Локация {removed_location['name']} удалена.")
     
     elif data == "cancel_delete":
         await query.message.reply_text("Удаление отменено.")
     
     return CHOOSING_ACTION
+#т Вот исправленная часть кода для удаления локаций
+# # Замение функцию button_callback этой версией
+
+# async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     query = update.callback_query
+#     await query.answer()
     
+#     data = query.data
+#     user_data = load_user_data()
+#     user = get_user_data(query.from_user.id, user_data)
+    
+#     if data.startswith("location_"):
+#         # Получение информации о локации
+#         location_index = int(data.split("_")[1])
+#         location = user["locations"][location_index]
+        
+#         # Получаем прогноз погоды для этой локации
+#         weather_forecast = get_weather_forecast(location["lat"], location["lon"])
+        
+#         location_text = (
+#             f"📍 *{location['name']}, {location['country']}*\n\n"
+#             f"🌤 *Текущая погода:*\n"
+#             f"Температура: {weather_forecast['current']['temp']}°C\n"
+#             f"Ощущается как: {weather_forecast['current']['feels_like']}°C\n"
+#             f"Давление: {weather_forecast['current']['pressure']} гПа\n"
+#             f"Влажность: {weather_forecast['current']['humidity']}%\n"
+#             f"Ветер: {weather_forecast['current']['wind_speed']} м/с, {get_wind_direction(weather_forecast['current']['wind_deg'])}\n"
+#             f"Облачность: {weather_forecast['current']['clouds']}%\n"
+#         )
+        
+#         await query.message.reply_text(location_text, parse_mode='Markdown')
+    
+#     elif data.startswith("forecast_"):
+#         # Получение прогноза клёва для локации
+#         location_index = int(data.split("_")[1])
+#         location = user["locations"][location_index]
+        
+#         await query.message.reply_text(f"🔍 Анализирую погодные условия для {location['name']}...")
+        
+#         # Получаем прогноз погоды
+#         weather_forecast = get_weather_forecast(location["lat"], location["lon"])
+        
+#         # Анализируем прогноз клёва на 3 дня
+#         forecast_text = f"🎣 *Прогноз клёва для {location['name']}*\n\n"
+        
+#         # Текущая фаза луны
+#         moon_phase = get_moon_phase()
+#         forecast_text += f"🌙 Фаза луны: {moon_phase['name']}\n\n"
+        
+#         # Прогноз на сегодня и следующие 2 дня
+#         for i in range(3):
+#             date = (datetime.now() + timedelta(days=i)).strftime("%d.%m.%Y")
+#             daily_forecast = weather_forecast['daily'][i]
+            
+#             # Рассчитываем вероятность клёва
+#             bite_probability, factors = calculate_bite_probability(daily_forecast, moon_phase)
+#             bite_rating = get_bite_rating(bite_probability)
+            
+#             forecast_text += f"📅 *{date}*\n"
+#             forecast_text += f"🌡 Температура: {daily_forecast['temp']['day']}°C\n"
+#             forecast_text += f"💨 Ветер: {daily_forecast['wind_speed']} м/с, {get_wind_direction(daily_forecast['wind_deg'])}\n"
+#             forecast_text += f"☁️ Облачность: {daily_forecast['clouds']}%\n"
+#             forecast_text += f"💧 Влажность: {daily_forecast['humidity']}%\n"
+#             forecast_text += f"📊 Давление: {daily_forecast['pressure']} гПа\n"
+#             forecast_text += f"🌧 Осадки: {daily_forecast.get('rain', 0)} мм\n"
+#             forecast_text += f"🎣 Клёв: {bite_rating}\n"
+            
+#             # Добавляем ключевые факторы
+#             forecast_text += "👍 Благоприятные факторы:\n"
+#             for factor in factors['positive']:
+#                 forecast_text += f"  • {factor}\n"
+            
+#             forecast_text += "👎 Неблагоприятные факторы:\n"
+#             for factor in factors['negative']:
+#                 forecast_text += f"  • {factor}\n"
+            
+#             forecast_text += "\n"
+        
+#         # Добавляем рекомендации
+#         forecast_text += "*Рекомендации по рыбалке:*\n"
+        
+#         if bite_probability > 75:
+#             forecast_text += "• Отличное время для рыбалки! Не упустите возможность.\n"
+#             forecast_text += "• Хищная рыба будет активна, стоит использовать активные приманки.\n"
+#         elif bite_probability > 50:
+#             forecast_text += "• Хороший день для рыбалки, особенно в утренние и вечерние часы.\n"
+#             forecast_text += "• Стоит комбинировать разные техники ловли.\n"
+#         elif bite_probability > 25:
+#             forecast_text += "• Умеренный клёв, лучше рыбачить в самое тихое время дня.\n"
+#             forecast_text += "• Рекомендуется использовать пассивные приманки и насадки.\n"
+#         else:
+#             forecast_text += "• Неблагоприятные условия для клёва, рыба малоактивна.\n"
+#             forecast_text += "• Если всё же решите рыбачить, стоит сосредоточиться на глубоких местах.\n"
+        
+#         await query.message.reply_text(forecast_text, parse_mode='Markdown')
+    
+#     elif data == "delete_location":
+#         # Отображаем локации для удаления
+#         if not user["locations"]:
+#             await query.message.reply_text("У тебя нет добавленных локаций.")
+#             return CHOOSING_ACTION
+        
+#         buttons = []
+#         for i, loc in enumerate(user["locations"]):
+#             buttons.append([InlineKeyboardButton(
+#                 f"Удалить: {loc['name']}", 
+#                 callback_data=f"remove_{i}"
+#             )])
+        
+#         buttons.append([InlineKeyboardButton("Отмена", callback_data="cancel_delete")])
+        
+#         await query.message.reply_text(
+#             "Выбери локацию для удаления:",
+#             reply_markup=InlineKeyboardMarkup(buttons)
+#         )
+    
+#     elif data.startswith("remove_"):
+#         # Удаление локации
+#         location_index = int(data.split("_")[1])
+        
+#         # Проверка на валидный индекс
+#         if 0 <= location_index < len(user["locations"]):
+#             removed_location = user["locations"].pop(location_index)
+#             save_user_data(user_data)  # Сохраняем изменения
+            
+#             await query.message.reply_text(f"Локация {removed_location['name']} удалена.")
+#         else:
+#             await query.message.reply_text("Ошибка: локация не найдена.")
+    
+#     elif data == "cancel_delete":
+#         await query.message.reply_text("Удаление отменено.")
+    
+#     return CHOOSING_ACTION
+
 # Получение данных погоды для локации
 def get_weather_data(location_name):
     url = f"http://api.openweathermap.org/data/2.5/weather?q={location_name}&appid={WEATHER_API_KEY}&units=metric&lang=ru"
