@@ -3,7 +3,7 @@ import logging
 import json
 from datetime import datetime, timedelta
 import requests
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, filters, ContextTypes
 # # Добавьте эти строки для загрузки переменных из .env файла.При деплое закомментировать
 # from dotenv import load_dotenv
@@ -388,7 +388,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         location_index = int(data.split("_")[1])
         location = user["locations"][location_index]
         
-        await query.message.reply_text(f"🔍 Анализирую погодные условия для {location['name']}...")
+        # Вместо отправки нового сообщения изменим текущее
+        await query.edit_message_text(
+            f"🔍 Анализирую погодные условия для {location['name']}...",
+            reply_markup=None
+        )
         
         # Получаем прогноз погоды
         weather_forecast = get_weather_forecast(location["lat"], location["lon"])
@@ -447,6 +451,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         forecast_text += "\n\nВыберите действие из меню ниже:"
         
+        # Обновляем то же сообщение с прогнозом
         return await show_main_menu(forecast_text)
     
     elif data == "delete_location":
