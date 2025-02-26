@@ -254,8 +254,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_data = load_user_data()
     user = get_user_data(query.from_user.id, user_data)
-    
-    if data == "restart":
+
+    # Функция для возврата к главному меню
+    async def return_to_main_menu(message_text):
         buttons = [
             [
                 InlineKeyboardButton("🎣 Прогноз клёва", callback_data="show_forecast"),
@@ -267,14 +268,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ],
             [InlineKeyboardButton("🔄 Перезапуск", callback_data="restart")]
         ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        
         await query.edit_message_text(
-            f"Бот перезапущен!\n\n"
-            "Выберите действие из меню ниже:",
-            reply_markup=reply_markup
+            text=message_text,
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
         return CHOOSING_ACTION
+
+    if data == "restart":
+        return await return_to_main_menu("Выберите действие из меню ниже:")
     
     elif data == "show_forecast":
         return await forecast_command(update, context)
@@ -337,7 +338,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Облачность: {weather_forecast['current']['clouds']}%\n"
         )
         
+        # Сначала отправляем информацию о локации
         await query.message.reply_text(location_text, parse_mode='Markdown')
+        # Затем возвращаемся к главному меню
+        return await return_to_main_menu("Выберите следующее действие:")
     
     elif data.startswith("forecast_"):
         # Получение прогноза клёва для локации
@@ -401,7 +405,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             forecast_text += "• Неблагоприятные условия для клёва, рыба малоактивна.\n"
             forecast_text += "• Если всё же решите рыбачить, стоит сосредоточиться на глубоких местах.\n"
         
+        # Сначала отправляем прогноз
         await query.message.reply_text(forecast_text, parse_mode='Markdown')
+        # Затем возвращаемся к главному меню
+        return await return_to_main_menu("Выберите следующее действие:")
     
     elif data == "delete_location":
         # Отображаем локации для удаления
@@ -425,26 +432,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data.startswith("remove_"):
         location_index = int(data.split("_")[1])
-        # Удаление локации
         if 0 <= location_index < len(user["locations"]):
             removed_location = user["locations"].pop(location_index)
             save_user_data(user_data)
-            
-            await query.edit_message_text(
-                f"Локация {removed_location['name']} удалена.",
-                reply_markup=None
-            )
+            return await return_to_main_menu(f"Локация {removed_location['name']} удалена.\n\nВыберите действие:")
         else:
-            await query.edit_message_text(
-                "Ошибка: локация не найдена.",
-                reply_markup=None
-            )
+            return await return_to_main_menu("Ошибка: локация не найдена.\n\nВыберите действие:")
     
     elif data == "cancel_delete":
-        await query.edit_message_text(
-            "Удаление отменено.",
-            reply_markup=None
-        )
+        return await return_to_main_menu("Удаление отменено.\n\nВыберите действие:")
     
     return CHOOSING_ACTION
 
