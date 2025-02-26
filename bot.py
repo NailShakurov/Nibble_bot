@@ -101,9 +101,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Обработчик добавления локации
 async def add_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['expecting_location'] = True
+    buttons = [[InlineKeyboardButton("🔄 Отмена", callback_data="restart")]]
     await update.message.reply_text(
         "📍 Пожалуйста, отправь название города или населенного пункта, рядом с которым ты рыбачишь.\n\n"
-        "Например: Москва, Санкт-Петербург, Сочи"
+        "Например: Москва, Санкт-Петербург, Сочи",
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
     return ADDING_LOCATION
 
@@ -709,21 +712,27 @@ def get_bite_rating(probability):
 
 # Обработчик текстовых сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return CHOOSING_ACTION
+        
     text = update.message.text
     
-    if text == "🎣 Прогноз клёва":
-        return await forecast_command(update, context)
-    elif text == "📍 Мои локации":
-        return await show_locations(update, context)
-    elif text == "➕ Добавить локацию":
-        return await add_location(update, context)
-    elif text == "❓ Помощь":
-        return await help_command(update, context)
-    else:
+    # Создаем инлайн клавиатуру для возврата в главное меню
+    buttons = [[InlineKeyboardButton("🔄 Вернуться в главное меню", callback_data="restart")]]
+    reply_markup = InlineKeyboardMarkup(buttons)
+    
+    if text.startswith("/"):
         await update.message.reply_text(
-            "Не понимаю эту команду. Пожалуйста, используйте кнопки или команды."
+            "Пожалуйста, используйте кнопки меню для навигации.",
+            reply_markup=reply_markup
         )
-        return CHOOSING_ACTION
+    else:
+        # Если мы ожидаем ввод локации
+        if context.user_data.get('expecting_location'):
+            context.user_data['expecting_location'] = False
+            return await location_received(update, context)
+            
+    return CHOOSING_ACTION
 
 # Основная функция
 def main():
@@ -745,16 +754,21 @@ def main():
                 CommandHandler("forecast", forecast_command),
                 CommandHandler("locations", show_locations),
                 CommandHandler("add_location", add_location),
+                CallbackQueryHandler(button_callback),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message),
             ],
             ADDING_LOCATION: [
+                CallbackQueryHandler(button_callback),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, location_received),
             ],
             SELECTING_LOCATION: [
                 CallbackQueryHandler(button_callback),
             ],
         },
-        fallbacks=[CommandHandler("start", start)],
+        fallbacks=[
+            CommandHandler("start", start),
+            CallbackQueryHandler(button_callback, pattern="^restart$")
+        ],
     )
     
     application.add_handler(conv_handler)
