@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 import requests
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, filters, ContextTypes
-# Добавьте эти строки для загрузки переменных из .env файла.При деплое закомментировать
-from dotenv import load_dotenv
-# Загружаем переменные окружения из .env файла. При деплое закомментировать
-load_dotenv()
+# # Добавьте эти строки для загрузки переменных из .env файла.При деплое закомментировать
+# from dotenv import load_dotenv
+# # Загружаем переменные окружения из .env файла. При деплое закомментировать
+# load_dotenv()
 
 
 # Настройка логирования
