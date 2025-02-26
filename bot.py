@@ -691,86 +691,96 @@ def calculate_bite_probability(weather_data, moon_phase):
     positive_factors = []
     negative_factors = []
     
-    # Фактор температуры
-    temp = weather_data['temp']['day']
-    if 15 <= temp <= 25:
+    # 1. Фактор времени суток (новый)
+    hour = datetime.now().hour
+    if 4 <= hour <= 8:  # Утренняя зорька
         probability += 15
-        positive_factors.append(f"Оптимальная температура ({temp}°C)")
-    elif 10 <= temp < 15 or 25 < temp <= 30:
-        probability += 5
-        positive_factors.append(f"Приемлемая температура ({temp}°C)")
-    elif temp < 5 or temp > 35:
-        probability -= 20
-        negative_factors.append(f"Неблагоприятная температура ({temp}°C)")
-    elif 5 <= temp < 10 or 30 < temp <= 35:
+        positive_factors.append("Утренняя зорька - лучшее время для клёва")
+    elif 17 <= hour <= 21:  # Вечерняя зорька
+        probability += 10
+        positive_factors.append("Вечерняя зорька - хорошее время для клёва")
+    elif 23 <= hour or hour <= 3:  # Ночь
         probability -= 10
-        negative_factors.append(f"Не очень благоприятная температура ({temp}°C)")
+        negative_factors.append("Ночное время - пониженная активность рыбы")
     
-    # Фактор ветра
-    wind_speed = weather_data['wind_speed']
-    if wind_speed < 2:
-        probability += 10
-        positive_factors.append("Слабый ветер")
-    elif 2 <= wind_speed <= 5:
-        probability += 5
-        positive_factors.append("Умеренный ветер")
-    elif 5 < wind_speed <= 8:
-        probability -= 5
-        negative_factors.append("Сильный ветер")
-    else:
-        probability -= 15
-        negative_factors.append("Очень сильный ветер")
-    
-    # Фактор давления и его стабильности
-    # Для простоты принимаем стандартное давление как благоприятное
-    pressure = weather_data['pressure']
-    if 1010 <= pressure <= 1020:
-        probability += 10
-        positive_factors.append("Стабильное атмосферное давление")
-    elif (1000 <= pressure < 1010) or (1020 < pressure <= 1030):
-        probability += 0
-    else:
-        probability -= 10
-        negative_factors.append("Нестабильное атмосферное давление")
-    
-    # Фактор облачности
-    clouds = weather_data['clouds']
-    if 30 <= clouds <= 70:
-        probability += 10
-        positive_factors.append("Переменная облачность")
-    elif clouds < 30:
-        probability += 5
-        positive_factors.append("Ясная погода")
-    else:
-        probability -= 5
-        negative_factors.append("Пасмурная погода")
-    
-    # Фактор осадков
-    if 'rain' in weather_data and weather_data['rain'] > 0:
-        rain = weather_data['rain']
-        if rain < 2:
-            probability += 5  # Небольшой дождь может увеличить активность рыбы
-            positive_factors.append("Легкий дождь")
-        elif 2 <= rain <= 5:
-            probability -= 5
-            negative_factors.append("Умеренный дождь")
-        else:
+    # 2. Фактор изменения давления (новый)
+    if 'pressure_trend' in weather_data:
+        pressure_change = weather_data['pressure_trend']
+        if abs(pressure_change) < 2:  # Стабильное
+            probability += 10
+            positive_factors.append("Стабильное атмосферное давление")
+        elif pressure_change > 5:  # Резкий рост
             probability -= 15
-            negative_factors.append("Сильный дождь")
+            negative_factors.append("Резкий рост атмосферного давления")
+        elif pressure_change < -5:  # Резкое падение
+            probability -= 15
+            negative_factors.append("Резкое падение атмосферного давления")
     
-    # Фактор фазы луны
+    # 3. Улучшенный фактор температуры с учетом сезона
+    temp = weather_data['temp']['day']
+    season = get_current_season()  # Новая функция определения сезона
+    
+    if season == "summer":
+        if 20 <= temp <= 25:
+            probability += 15
+            positive_factors.append(f"Оптимальная летняя температура ({temp}°C)")
+    elif season == "winter":
+        if 0 <= temp <= 5:
+            probability += 15
+            positive_factors.append(f"Оптимальная зимняя температура ({temp}°C)")
+    elif season in ["spring", "autumn"]:
+        if 10 <= temp <= 20:
+            probability += 15
+            positive_factors.append(f"Оптимальная весенне-осенняя температура ({temp}°C)")
+    
+    # 4. Улучшенный фактор ветра с учетом направления
+    wind_speed = weather_data['wind_speed']
+    wind_dir = weather_data['wind_deg']
+    
+    # Проверка на резкую смену направления ветра
+    if 'prev_wind_dir' in weather_data and abs(wind_dir - weather_data['prev_wind_dir']) > 90:
+        probability -= 10
+        negative_factors.append("Резкая смена направления ветра")
+    
+    # 5. Комбинированные факторы (новые)
+    if 'rain' in weather_data and weather_data['rain'] > 0 and wind_speed > 5:
+        probability -= 20  # Дополнительный штраф за дождь с сильным ветром
+        negative_factors.append("Дождь с сильным ветром")
+    
+    if weather_data['humidity'] > 80 and temp > 20:
+        probability += 5  # Бонус за душную погоду
+        positive_factors.append("Душная погода способствует клёву")
+    
+    # 6. Улучшенный фактор фазы луны с учетом времени суток
     moon_factor = moon_phase['fishing_factor']
+    if moon_phase['phase'] in [0, 4]:  # Новолуние или полнолуние
+        if 19 <= hour <= 23:  # Вечерний клёв в эти фазы особенно хорош
+            probability *= 1.2
+            positive_factors.append("Благоприятное время для ночной рыбалки")
+    
     probability *= moon_factor
     
-    if moon_factor >= 0.9:
-        positive_factors.append(f"Благоприятная фаза луны ({moon_phase['name']})")
-    elif moon_factor <= 0.7:
-        negative_factors.append(f"Неблагоприятная фаза луны ({moon_phase['name']})")
+    # 7. Штормовое предупреждение (новый)
+    if wind_speed > 10 or ('rain' in weather_data and weather_data['rain'] > 10):
+        probability = min(probability, 30)  # Ограничение максимальной вероятности
+        negative_factors.append("⚠️ Штормовое предупреждение - рыбалка не рекомендуется")
     
     # Убеждаемся, что вероятность в пределах от 0 до 100
     probability = max(0, min(100, probability))
     
     return probability, {"positive": positive_factors, "negative": negative_factors}
+
+# Новая вспомогательная функция определения сезона
+def get_current_season():
+    month = datetime.now().month
+    if month in [12, 1, 2]:
+        return "winter"
+    elif month in [3, 4, 5]:
+        return "spring"
+    elif month in [6, 7, 8]:
+        return "summer"
+    else:
+        return "autumn"
 
 # Получение текстового рейтинга клёва на основе вероятности
 def get_bite_rating(probability):
