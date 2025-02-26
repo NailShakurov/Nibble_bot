@@ -159,13 +159,24 @@ async def location_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Обработчик команды мои локации
 async def show_locations(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Определяем, откуда пришел запрос - из команды или callback
+    if update.callback_query:
+        query = update.callback_query
+        user_id = query.from_user.id
+        message = query.message
+    else:
+        user_id = update.effective_user.id
+        message = update.message
+
     user_data = load_user_data()
-    user = get_user_data(update.effective_user.id, user_data)
+    user = get_user_data(user_id, user_data)
     
     if not user["locations"]:
-        await update.message.reply_text(
-            "У тебя пока нет добавленных локаций. Нажми на '➕ Добавить локацию', чтобы добавить места для рыбалки."
-        )
+        text = "У тебя пока нет добавленных локаций. Нажми на '➕ Добавить локацию', чтобы добавить места для рыбалки."
+        if update.callback_query:
+            await query.edit_message_text(text)
+        else:
+            await message.reply_text(text)
         return CHOOSING_ACTION
     
     locations_text = "📍 *Мои локации для рыбалки:*\n\n"
@@ -179,23 +190,43 @@ async def show_locations(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )])
     
     buttons.append([InlineKeyboardButton("❌ Удалить локацию", callback_data="delete_location")])
+    buttons.append([InlineKeyboardButton("🔄 Вернуться в главное меню", callback_data="restart")])
     
-    await update.message.reply_text(
-        locations_text,
-        parse_mode='Markdown',
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+    if update.callback_query:
+        await query.edit_message_text(
+            locations_text,
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    else:
+        await message.reply_text(
+            locations_text,
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    
     return SELECTING_LOCATION
 
 # Обработчик команды прогноз клёва
 async def forecast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Определяем, откуда пришел запрос - из команды или callback
+    if update.callback_query:
+        query = update.callback_query
+        user_id = query.from_user.id
+        message = query.message
+    else:
+        user_id = update.effective_user.id
+        message = update.message
+
     user_data = load_user_data()
-    user = get_user_data(update.effective_user.id, user_data)
+    user = get_user_data(user_id, user_data)
     
     if not user["locations"]:
-        await update.message.reply_text(
-            "У тебя пока нет добавленных локаций. Нажми на '➕ Добавить локацию', чтобы добавить места для рыбалки."
-        )
+        text = "У тебя пока нет добавленных локаций. Нажми на '➕ Добавить локацию', чтобы добавить места для рыбалки."
+        if update.callback_query:
+            await query.edit_message_text(text)
+        else:
+            await message.reply_text(text)
         return CHOOSING_ACTION
     
     buttons = []
@@ -205,10 +236,14 @@ async def forecast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             callback_data=f"forecast_{i}"
         )])
     
-    await update.message.reply_text(
-        "🎣 Выбери локацию для прогноза клёва:",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+    buttons.append([InlineKeyboardButton("🔄 Вернуться в главное меню", callback_data="restart")])
+    
+    text = "🎣 Выбери локацию для прогноза клёва:"
+    if update.callback_query:
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons))
+    else:
+        await message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons))
+    
     return SELECTING_LOCATION
 
 # Обработчик нажатий на кнопки
