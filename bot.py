@@ -787,20 +787,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     text = update.message.text
     
-    # Создаем инлайн клавиатуру для возврата в главное меню
-    buttons = [[InlineKeyboardButton("🔄 Вернуться в главное меню", callback_data="restart")]]
+    # Если мы ожидаем ввод локации
+    if context.user_data.get('expecting_location'):
+        context.user_data['expecting_location'] = False
+        return await location_received(update, context)
+    
+    # Для всех остальных текстовых сообщений показываем главное меню
+    buttons = [
+        [
+            InlineKeyboardButton("🎣 Прогноз клёва", callback_data="show_forecast"),
+            InlineKeyboardButton("📍 Мои локации", callback_data="show_locations")
+        ],
+        [
+            InlineKeyboardButton("➕ Добавить локацию", callback_data="add_location"),
+            InlineKeyboardButton("❓ Помощь", callback_data="help")
+        ],
+        [InlineKeyboardButton("🔄 Перезапуск", callback_data="restart")]
+    ]
     reply_markup = InlineKeyboardMarkup(buttons)
     
-    if text.startswith("/"):
-        await update.message.reply_text(
-            "Пожалуйста, используйте кнопки меню для навигации.",
-            reply_markup=reply_markup
-        )
-    else:
-        # Если мы ожидаем ввод локации
-        if context.user_data.get('expecting_location'):
-            context.user_data['expecting_location'] = False
-            return await location_received(update, context)
+    await update.message.reply_text(
+        "Пожалуйста, используйте кнопки меню для навигации:",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
             
     return CHOOSING_ACTION
 
