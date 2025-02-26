@@ -77,6 +77,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Обработчик команды /help
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    buttons = [
+        [
+            InlineKeyboardButton("🎣 Прогноз клёва", callback_data="show_forecast"),
+            InlineKeyboardButton("📍 Мои локации", callback_data="show_locations")
+        ],
+        [
+            InlineKeyboardButton("➕ Добавить локацию", callback_data="add_location"),
+            InlineKeyboardButton("❓ Помощь", callback_data="help")
+        ],
+        [InlineKeyboardButton("🔄 Перезапуск", callback_data="restart")]
+    ]
+    reply_markup = InlineKeyboardMarkup(buttons)
+
     help_text = (
         "🤖 *Команды бота:*\n\n"
         "🎣 */forecast* - получить прогноз клёва\n"
@@ -96,7 +109,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Осадки\n"
         "• Фазы луны"
     )
-    await update.message.reply_text(help_text, parse_mode='Markdown')
+    await update.message.reply_text(
+        help_text, 
+        parse_mode='Markdown',
+        reply_markup=reply_markup
+    )
     return CHOOSING_ACTION
 
 # Обработчик добавления локации
@@ -276,8 +293,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = load_user_data()
     user = get_user_data(query.from_user.id, user_data)
 
-    # Функция для возврата к главному меню
-    async def return_to_main_menu(message_text):
+    if data == "restart":
         buttons = [
             [
                 InlineKeyboardButton("🎣 Прогноз клёва", callback_data="show_forecast"),
@@ -289,14 +305,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ],
             [InlineKeyboardButton("🔄 Перезапуск", callback_data="restart")]
         ]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        
         await query.edit_message_text(
-            text=message_text,
-            reply_markup=InlineKeyboardMarkup(buttons)
+            f"Привет, {query.from_user.first_name}! 👋\n\n"
+            "Я бот-предсказатель клёва рыбы. Я анализирую погодные условия и подскажу, когда лучше всего отправиться на рыбалку.\n\n"
+            "Выберите действие из меню ниже:",
+            reply_markup=reply_markup
         )
         return CHOOSING_ACTION
-
-    if data == "restart":
-        return await return_to_main_menu("Выберите действие из меню ниже:")
     
     elif data == "show_forecast":
         return await forecast_command(update, context)
@@ -799,7 +816,13 @@ def main():
     
     # Добавляем обработчик разговора
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            CommandHandler("help", help_command),
+            CommandHandler("forecast", forecast_command),
+            CommandHandler("locations", show_locations),
+            CommandHandler("add_location", add_location),
+        ],
         states={
             CHOOSING_ACTION: [
                 CommandHandler("help", help_command),
@@ -812,14 +835,17 @@ def main():
             ADDING_LOCATION: [
                 CallbackQueryHandler(button_callback),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, location_received),
+                CommandHandler("start", start),
             ],
             SELECTING_LOCATION: [
                 CallbackQueryHandler(button_callback),
+                CommandHandler("start", start),
             ],
         },
         fallbacks=[
             CommandHandler("start", start),
-            CallbackQueryHandler(button_callback, pattern="^restart$")
+            CallbackQueryHandler(button_callback, pattern="^restart$"),
+            MessageHandler(filters.ALL, handle_message),
         ],
     )
     
